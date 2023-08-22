@@ -68,7 +68,9 @@ class MainActivity : ComponentActivity() {
         // Call the function asynchronously
         lifecycleScope.launch {
             val workRequest = OneTimeWorkRequestBuilder<SRDataCheckWorker>().build()
+            val workRequest2 = OneTimeWorkRequestBuilder<CLDataCheckWorker>().build()
             WorkManager.getInstance(applicationContext).enqueue(workRequest)
+            WorkManager.getInstance(applicationContext).enqueue(workRequest2)
         }
     }
 
