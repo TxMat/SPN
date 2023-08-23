@@ -53,7 +53,9 @@ abstract class DataCheckWorker(
         }
         // print AAA in log for debugging
         Log.w("showNotification", "SUCCESS")
-        notificationManager.notify(123, notificationBuilder.build())
+        // generate a random notification id
+        val notificationId = (0..10000).random()
+        notificationManager.notify(notificationId, notificationBuilder.build())
     }
 
 
