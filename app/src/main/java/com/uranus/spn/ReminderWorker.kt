@@ -9,6 +9,9 @@ import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.work.CoroutineWorker
+import androidx.work.OneTimeWorkRequest
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -19,19 +22,36 @@ class ReminderWorker(
 
     override suspend fun doWork(): Result {
         // Display the notification for the reminder
-        showReminderNotification()
+
+        val title = inputData.getString("title") ?: "Reminder"
+        val content = inputData.getString("content") ?: "Reminder content"
+        val check = inputData.getBoolean("check", false)
+        val from = inputData.getString("from") ?: "NA"
+
+        showReminderNotification(title, content)
+
+        if (check) {
+            // relaunch the worker that came from
+            val workManager = WorkManager.getInstance(applicationContext)
+            var workRequest: OneTimeWorkRequest? = null
+            if (from == "CL"){
+                workRequest = OneTimeWorkRequestBuilder<CLDataCheckWorker>().build()
+            } else if (from == "SR") {
+                workRequest = OneTimeWorkRequestBuilder<SRDataCheckWorker>().build()
+            }
+            workManager.enqueue(workRequest!!)
+
+        }
 
         return Result.success()
     }
 
-    private suspend fun showReminderNotification() {
+    private suspend fun showReminderNotification(title: String, content: String) {
         withContext(Dispatchers.Main) {
             val channelId = "ReminderChannelId"
             val notificationBuilder = NotificationCompat.Builder(applicationContext, channelId)
-                .setSmallIcon(R.drawable.ic_notification)
-                .setContentTitle("Reminder")
-                .setContentText("The event is tomorrow! Don't forget!")
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setSmallIcon(R.drawable.ic_notification).setContentTitle(title)
+                .setContentText(content).setPriority(NotificationCompat.PRIORITY_HIGH)
 
             val notificationManager = NotificationManagerCompat.from(applicationContext)
             val channel = NotificationChannel(
@@ -40,8 +60,7 @@ class ReminderWorker(
             notificationManager.createNotificationChannel(channel)
 
             if (ActivityCompat.checkSelfPermission(
-                    applicationContext,
-                    Manifest.permission.POST_NOTIFICATIONS
+                    applicationContext, Manifest.permission.POST_NOTIFICATIONS
                 ) != PackageManager.PERMISSION_GRANTED
             ) {
                 // TODO: Consider calling
